@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biryani Run</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style>
+        body { margin: 0; }
+    </style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth, // Set game width to the screen width
+            height: window.innerHeight, // Set game height to the screen height
+            physics: {
+                default: 'arcade',
+                arcade: { 
+                    gravity: { y: 0 }, // No gravity needed for this game
+                    debug: false 
+                }
+            },
+            scene: { preload, create, update }
+        };
+
+        let player, cursors, biryanis, bay_leafs, score = 0, scoreText, lives = 5, livesText;
+        let baseVelocity = -200; // Base velocity of biryanis
+        let velocityMultiplier = 1; // Multiplier to increase velocity over time
+        let gameOver = false; // Track if the game is over
+        let biryaniSpawnEvent, bay_leafSpawnEvent; // Timers for spawning biryanis and bay_leafs
+        let restartButton; // Restart button
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            this.load.image('road', 'assets/road.png'); // Replace with actual road image
+            this.load.image('player', 'assets/character.png'); // Replace with player image
+            this.load.image('biryani', 'assets/biryani.png'); // Replace with biryani image
+            this.load.image('bay_leaf', 'assets/bay_leaf.png'); // Replace with bay_leaf image
+            this.load.image('restart', 'assets/restart.png'); // Replace with restart button image
+        }
+
+        function create() {
+    // Set the road background to cover the entire screen
+    this.road = this.add.tileSprite(config.width / 2, config.height / 2, config.width, config.height * 1.5, 'road');
+    
+    // Create the player and scale it down
+    player = this.physics.add.sprite(100, config.height / 2, 'player');
+    player.setCollideWorldBounds(true);
+    player.setScale(0.3);
+
+    // Reinitialize keyboard input on scene restart
+    cursors = this.input.keyboard.createCursorKeys();
+
+    // Create a group for biryanis
+    biryanis = this.physics.add.group();
+    biryaniSpawnEvent = this.time.addEvent({ delay: 1000, callback: spawnBiryani, callbackScope: this, loop: true });
+
+    // Create a group for bay_leafs
+    bay_leafs = this.physics.add.group();
+    bay_leafSpawnEvent = this.time.addEvent({ delay: 1500, callback: spawnbay_leaf, callbackScope: this, loop: true });
+
+    // Display the score
+    score = 0;
+    scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
+
+    // Display the lives
+    lives = 5;
+    livesText = this.add.text(10, 40, 'Lives: 5', { fontSize: '20px', fill: '#fff' });
+
+    // Reset game over flag
+    gameOver = false;
+
+    // Add overlap detection between player and biryanis
+    this.physics.add.overlap(player, biryanis, collectBiryani, null, this);
+
+    // Add collision detection between player and bay_leafs
+    this.physics.add.overlap(player, bay_leafs, hitbay_leaf, null, this);
+}
+
+
+        function update() {
+            if (gameOver) return; // Stop updates if the game is over
+
+            // Scroll the road background
+            this.road.tilePositionX += 4;
+
+            // Move the player up and down
+            if (cursors.up.isDown) {
+                player.setVelocityY(-200);
+            } else if (cursors.down.isDown) {
+                player.setVelocityY(200);
+            } else {
+                player.setVelocityY(0);
+            }
+
+            // Remove biryanis and bay_leafs that go off-screen to free up memory
+            biryanis.getChildren().forEach(biryani => {
+                if (biryani.x < -50) {
+                    biryani.destroy();
+                }
+            });
+            bay_leafs.getChildren().forEach(bay_leaf => {
+                if (bay_leaf.x < -50) {
+                    bay_leaf.destroy();
+                }
+            });
+        }
+
+        function spawnBiryani() {
+            let biryani = biryanis.create(config.width, Phaser.Math.Between(50, config.height - 50), 'biryani');
+            biryani.setVelocityX(baseVelocity * velocityMultiplier);
+            biryani.setCollideWorldBounds(false);
+            biryani.allowGravity = false;
+            biryani.setScale(0.3);
+        }
+
+        function spawnbay_leaf() {
+            let bay_leaf = bay_leafs.create(config.width, Phaser.Math.Between(50, config.height - 50), 'bay_leaf');
+            bay_leaf.setVelocityX(baseVelocity * velocityMultiplier);
+            bay_leaf.setCollideWorldBounds(false);
+            bay_leaf.allowGravity = false;
+            bay_leaf.setScale(0.3);
+        }
+
+        function collectBiryani(player, biryani) {
+            // Calculate the distance between the player and the biryani
+            const distance = Phaser.Math.Distance.Between(player.x, player.y, biryani.x, biryani.y);
+
+            // Define a threshold for how close the player needs to be to collect the biryani
+            const collectThreshold = 100; // Adjust this value to make it easier or harder
+
+            // Only award points if the player is very close to the biryani
+            if (distance < collectThreshold) {
+                biryani.destroy(); // Remove the biryani
+                score += 10; // Award points
+                scoreText.setText('Score: ' + score); // Update the score display
+
+                // Increase velocity multiplier as the score increases
+                velocityMultiplier = 1 + (score * 0.01); // Increase multiplier by 1% for every 10 points
+            }
+        }
+
+        function hitbay_leaf(player, bay_leaf) {
+            const distance = Phaser.Math.Distance.Between(player.x, player.y, bay_leaf.x, bay_leaf.y);
+            const hitThreshold = 50; // Adjusted threshold for a more fair collision detection
+
+            if (distance < hitThreshold) {
+                bay_leaf.destroy();
+                lives--;
+                livesText.setText('Lives: ' + lives);
+
+                if (lives === 0) {
+                    gameOver = true;
+                    this.physics.pause(); // Pause physics
+                    this.time.removeAllEvents(); // Stop all timers (biryanis and bay_leafs)
+                    
+                    // Display "Game Over!" text
+                    this.add.text(config.width / 2 - 25, config.height / 2 - 50, 'Game Over!', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
+                    
+                    // Add restart button
+                    restartButton = this.add.image(config.width / 2, config.height / 2 + 50, 'restart').setInteractive();
+                     // Adjust the scale of the restart button
+                    
+                    // Add click event to restart the game
+                    restartButton.on('pointerdown', () => {
+                        // score = 0;
+                        // lives = 5;
+                        // velocityMultiplier = 1;
+                        this.scene.restart(); // Restart the current scene
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
