@@ -52,6 +52,10 @@
         const game = new Phaser.Game(config);
 
         function preload() {
+            // Load background image for the start page
+            this.load.image('start_bg', 'assets/start_bg.jpg');
+
+            // Load game assets
             this.load.image('road', 'assets/road.png');
             this.load.image('player', 'assets/character.png');
             this.load.image('biryani', 'assets/biryani.png');
@@ -67,10 +71,16 @@
         }
 
         function createStartScreen() {
+            // Add background image for the start page
+            this.add.image(config.width / 2, config.height / 2, 'start_bg')
+                .setDisplaySize(config.width, config.height); // Scale to fit the screen
+
+            // Add title text
             const title = this.add.text(config.width / 2, config.height / 3, 'Biryani Run', {
                 fontSize: '64px', fontFamily: 'Arial', color: '#FFD700', stroke: '#000', strokeThickness: 6
             }).setOrigin(0.5);
 
+            // Add start button
             const startButton = this.add.image(config.width / 2, config.height * 0.6, 'startButton')
                 .setOrigin(0.5)
                 .setInteractive()
@@ -80,8 +90,9 @@
                     createGameElements.call(this);
                 });
 
-            startButton.on('pointerover', () => startButton.setScale(1.1));
-            startButton.on('pointerout', () => startButton.setScale(1));
+            // Add hover effect for the start button
+            startButton.on('pointerover', () => startButton.setScale(0.6));
+            startButton.on('pointerout', () => startButton.setScale(0.5));
         }
 
         function createGameElements() {
@@ -137,14 +148,40 @@
         }
 
         function spawnCoke() {
-            let coke = cokeGroup.create(Phaser.Math.Between(50, config.width - 50), 0, 'coke').setScale(0.5);
-            coke.setVelocityY(50);
-        }
+    // Randomize spawn delay between 5 and 15 seconds
+    const spawnDelay = Phaser.Math.Between(5000, 15000);
+    this.time.delayedCall(spawnDelay, spawnCoke, [], this);
 
-        function spawnKebab() {
-            let kebab = kebabGroup.create(Phaser.Math.Between(50, config.width - 50), 0, 'kebab').setScale(0.5);
-            kebab.setVelocityY(50);
-        }
+    // Limit the number of active Coke objects
+    if (cokeGroup.getLength() >= 3) return;
+
+    // Spawn Coke at a random position across the top of the screen
+    const xPos = Phaser.Math.Between(100, config.width - 100);
+    const yPos = -50; // Spawn above the screen
+    const speed = Phaser.Math.Between(100, 200); // Randomize speed
+
+    let coke = cokeGroup.create(xPos, yPos, 'coke')
+        .setScale(0.5)
+        .setVelocityY(speed); // Move downward at a random speed
+}
+
+function spawnKebab() {
+    // Randomize spawn delay between 10 and 20 seconds
+    const spawnDelay = Phaser.Math.Between(10000, 20000);
+    this.time.delayedCall(spawnDelay, spawnKebab, [], this);
+
+    // Limit the number of active Kebab objects
+    if (kebabGroup.getLength() >= 2) return;
+
+    // Spawn Kebab at a random position across the top of the screen
+    const xPos = Phaser.Math.Between(100, config.width - 100);
+    const yPos = -50; // Spawn above the screen
+    const speed = Phaser.Math.Between(100, 200); // Randomize speed
+
+    let kebab = kebabGroup.create(xPos, yPos, 'kebab')
+        .setScale(0.5)
+        .setVelocityY(speed); // Move downward at a random speed
+}
 
         function collectBiryani(player, biryani) {
             if (Phaser.Math.Distance.Between(player.x, player.y, biryani.x, biryani.y) < 100) {
@@ -155,10 +192,17 @@
 
         function hitBayLeaf(player, bay_leaf) {
             if (player.immune) return;
-            bay_leaf.destroy();
-            lives--;
-            livesText.setText('Lives: ' + lives);
-            if (lives === 0) endGame.call(this);
+
+            // Calculate the distance between the player and the bay leaf
+            const distance = Phaser.Math.Distance.Between(player.x, player.y, bay_leaf.x, bay_leaf.y);
+
+            // Only deduct a life if the player is close enough to the bay leaf
+            if (distance < 50) { // Adjust the distance threshold as needed
+                bay_leaf.destroy();
+                lives--;
+                livesText.setText('Lives: ' + lives);
+                if (lives === 0) endGame.call(this);
+            }
         }
 
         function collectCoke(player, coke) {
