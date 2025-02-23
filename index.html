@@ -6,88 +6,160 @@
     <title>Biryani Run</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <style>
-        body { margin: 0; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+        }
     </style>
 </head>
 <body>
     <script>
+        let player, cursors, biryanis, bay_leafs, score = 0, scoreText, lives = 5, livesText;
+        let baseVelocity = -200;
+        let velocityMultiplier = 1;
+        let gameOver = false;
+        let biryaniSpawnEvent, bay_leafSpawnEvent;
+        let restartButton;
+
         const config = {
             type: Phaser.AUTO,
-            width: window.innerWidth, // Set game width to the screen width
-            height: window.innerHeight, // Set game height to the screen height
+            width: window.innerWidth,
+            height: window.innerHeight,
             physics: {
                 default: 'arcade',
-                arcade: { 
-                    gravity: { y: 0 }, // No gravity needed for this game
-                    debug: false 
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
                 }
             },
-            scene: { preload, create, update }
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
         };
-
-        let player, cursors, biryanis, bay_leafs, score = 0, scoreText, lives = 5, livesText;
-        let baseVelocity = -200; // Base velocity of biryanis
-        let velocityMultiplier = 1; // Multiplier to increase velocity over time
-        let gameOver = false; // Track if the game is over
-        let biryaniSpawnEvent, bay_leafSpawnEvent; // Timers for spawning biryanis and bay_leafs
-        let restartButton; // Restart button
 
         const game = new Phaser.Game(config);
 
         function preload() {
-            this.load.image('road', 'assets/road.png'); // Replace with actual road image
-            this.load.image('player', 'assets/character.png'); // Replace with player image
-            this.load.image('biryani', 'assets/biryani.png'); // Replace with biryani image
-            this.load.image('bay_leaf', 'assets/bay_leaf.png'); // Replace with bay_leaf image
-            this.load.image('restart', 'assets/restart.png'); // Replace with restart button image
+            this.load.image('road', 'assets/road.png');
+            this.load.image('player', 'assets/character.png');
+            this.load.image('biryani', 'assets/biryani.png');
+            this.load.image('bay_leaf', 'assets/bay_leaf.png');
+            this.load.image('restartButton', 'assets/restartButton.png');
+            this.load.image('startButton','assets/startButton.png');
         }
 
         function create() {
-    // Set the road background to cover the entire screen
-    this.road = this.add.tileSprite(config.width / 2, config.height / 2, config.width, config.height * 1.5, 'road');
-    
-    // Create the player and scale it down
-    player = this.physics.add.sprite(100, config.height / 2, 'player');
-    player.setCollideWorldBounds(true);
-    player.setScale(0.3);
+            if (!gameOver) {
+                createStartScreen.call(this);
+            }
+        }
 
-    // Reinitialize keyboard input on scene restart
-    cursors = this.input.keyboard.createCursorKeys();
+        function createStartScreen() {
+            // Create start screen elements
+            const titleStyle = {
+                fontSize: '64px',
+                fontFamily: 'Arial',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 6
+            };
 
-    // Create a group for biryanis
-    biryanis = this.physics.add.group();
-    biryaniSpawnEvent = this.time.addEvent({ delay: 1000, callback: spawnBiryani, callbackScope: this, loop: true });
+            const title = this.add.text(config.width / 2, config.height / 3, 'Biryani Run', titleStyle)
+                .setOrigin(0.5);
+            
+            const startButton = this.add.image(config.width / 2, config.height * 0.6, 'startButton')
+                .setOrigin(0.5)
+                .setInteractive()
+                .on('pointerdown', () => {
+                    console.log('Start Button Clicked');
+                    // Add your logic to start the game
+                    title.destroy();
+                    startButton.destroy();
+                    createGameElements.call(this);
+                });
 
-    // Create a group for bay_leafs
-    bay_leafs = this.physics.add.group();
-    bay_leafSpawnEvent = this.time.addEvent({ delay: 1500, callback: spawnbay_leaf, callbackScope: this, loop: true });
+            // Optionally, add hover effects
+            startButton.on('pointerover', () => {
+                startButton.setScale(1.1); // Slightly increase size
+            });
 
-    // Display the score
-    score = 0;
-    scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
+            startButton.on('pointerout', () => {
+                startButton.setScale(1); // Reset size
+            });
+        }
+        //     const startButton = this.add.text(config.width / 2, config.height * 0.6, 'Start Game', {
+        //         fontSize: '32px',
+        //         fontFamily: 'Arial',
+        //         color: '#ffffff',
+        //         backgroundColor: '#4CAF50',
+        //         padding: { x: 20, y: 10 }
+        //     }).setOrigin(0.5)
+        //       .setInteractive();
 
-    // Display the lives
-    lives = 5;
-    livesText = this.add.text(10, 40, 'Lives: 5', { fontSize: '20px', fill: '#fff' });
+        //     startButton.on('pointerover', () => startButton.setScale(1.1));
+        //     startButton.on('pointerout', () => startButton.setScale(1));
+        //     startButton.on('pointerdown', () => {
+        //         title.destroy();
+        //         startButton.destroy();
+        //         createGameElements.call(this);
+        //     });
+        // }
 
-    // Reset game over flag
-    gameOver = false;
+        function createGameElements() {
+            // Set the road background
+            this.road = this.add.tileSprite(config.width / 2, config.height / 2, config.width, config.height * 1.5, 'road');
+            
+            // Create the player
+            player = this.physics.add.sprite(100, config.height / 2, 'player');
+            player.setCollideWorldBounds(true);
+            player.setScale(0.3);
 
-    // Add overlap detection between player and biryanis
-    this.physics.add.overlap(player, biryanis, collectBiryani, null, this);
+            // Setup keyboard controls
+            cursors = this.input.keyboard.createCursorKeys();
 
-    // Add collision detection between player and bay_leafs
-    this.physics.add.overlap(player, bay_leafs, hitbay_leaf, null, this);
-}
+            // Create groups
+            biryanis = this.physics.add.group();
+            bay_leafs = this.physics.add.group();
 
+            // Setup spawn events
+            biryaniSpawnEvent = this.time.addEvent({
+                delay: 1000,
+                callback: spawnBiryani,
+                callbackScope: this,
+                loop: true
+            });
+
+            bay_leafSpawnEvent = this.time.addEvent({
+                delay: 1500,
+                callback: spawnbay_leaf,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Setup score and lives display
+            score = 0;
+            lives = 5;
+            scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
+            livesText = this.add.text(10, 40, 'Lives: 5', { fontSize: '20px', fill: '#fff' });
+
+            // Setup collisions
+            this.physics.add.overlap(player, biryanis, collectBiryani, null, this);
+            this.physics.add.overlap(player, bay_leafs, hitbay_leaf, null, this);
+
+            gameOver = false;
+        }
 
         function update() {
-            if (gameOver) return; // Stop updates if the game is over
+            if (!player || gameOver) return;
 
-            // Scroll the road background
-            this.road.tilePositionX += 4;
+            // Scroll the road
+            if (this.road) {
+                this.road.tilePositionX += 4;
+            }
 
-            // Move the player up and down
+            // Player movement
             if (cursors.up.isDown) {
                 player.setVelocityY(-200);
             } else if (cursors.down.isDown) {
@@ -96,17 +168,17 @@
                 player.setVelocityY(0);
             }
 
-            // Remove biryanis and bay_leafs that go off-screen to free up memory
-            biryanis.getChildren().forEach(biryani => {
-                if (biryani.x < -50) {
-                    biryani.destroy();
-                }
-            });
-            bay_leafs.getChildren().forEach(bay_leaf => {
-                if (bay_leaf.x < -50) {
-                    bay_leaf.destroy();
-                }
-            });
+            // Clean up off-screen objects
+            if (biryanis) {
+                biryanis.getChildren().forEach(biryani => {
+                    if (biryani.x < -50) biryani.destroy();
+                });
+            }
+            if (bay_leafs) {
+                bay_leafs.getChildren().forEach(bay_leaf => {
+                    if (bay_leaf.x < -50) bay_leaf.destroy();
+                });
+            }
         }
 
         function spawnBiryani() {
@@ -142,7 +214,6 @@
                 velocityMultiplier = 1 + (score * 0.01); // Increase multiplier by 1% for every 10 points
             }
         }
-
         function hitbay_leaf(player, bay_leaf) {
             const distance = Phaser.Math.Distance.Between(player.x, player.y, bay_leaf.x, bay_leaf.y);
             const hitThreshold = 50; // Adjusted threshold for a more fair collision detection
@@ -158,22 +229,50 @@
                     this.time.removeAllEvents(); // Stop all timers (biryanis and bay_leafs)
                     
                     // Display "Game Over!" text
-                    this.add.text(config.width / 2 - 25, config.height / 2 - 50, 'Game Over!', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
-                    
-                    // Add restart button
-                    restartButton = this.add.image(config.width / 2, config.height / 2 + 50, 'restart').setInteractive();
-                     // Adjust the scale of the restart button
-                    
-                    // Add click event to restart the game
-                    restartButton.on('pointerdown', () => {
-                        // score = 0;
-                        // lives = 5;
-                        // velocityMultiplier = 1;
-                        this.scene.restart(); // Restart the current scene
-                    });
-                }
+                    this.add.text(config.width / 2, config.height / 2 - 50, 'Game Over!', {
+                    fontSize: '40px',
+                    fill: '#fff'
+                }).setOrigin(0.5);
+
+                const restartButton = this.add.image(config.width / 2, config.height * 0.7, 'restartButton')
+                    .setOrigin(0.5)
+                    .setInteractive();
+
+                restartButton.on('pointerdown', () => {
+                    location.reload();
+                });
+                }}
             }
-        }
+        // function hitbay_leaf(player, bay_leaf) {
+        //     bay_leaf.destroy();
+        //     lives--;
+        //     livesText.setText('Lives: ' + lives);
+
+        //     if (lives <= 0) {
+        //         gameOver = true;
+        //         this.physics.pause();
+
+        //         if (biryaniSpawnEvent) biryaniSpawnEvent.remove();
+        //         if (bay_leafSpawnEvent) bay_leafSpawnEvent.remove();
+
+        //         this.add.text(config.width / 2, config.height / 2 - 50, 'Game Over!', {
+        //             fontSize: '40px',
+        //             fill: '#fff'
+        //         }).setOrigin(0.5);
+
+        //         const restartButton = this.add.text(config.width / 2, config.height / 2 + 50, 'Restart', {
+        //             fontSize: '32px',
+        //             fill: '#fff',
+        //             backgroundColor: '#4CAF50',
+        //             padding: { x: 20, y: 10 }
+        //         }).setOrigin(0.5)
+        //           .setInteractive();
+
+        //         restartButton.on('pointerdown', () => {
+        //             location.reload();
+        //         });
+        //      }
+        //  }
     </script>
 </body>
 </html>
