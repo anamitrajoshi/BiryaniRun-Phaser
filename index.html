@@ -186,7 +186,19 @@
             this.time.removeAllEvents();
 
             this.add.text(config.width / 2, config.height / 2 - 50, 'Game Over!', {
-                fontSize: '40px', fill: '#fff'
+                fontSize: '64px',
+                fill: '#ff0000', // Bright red color
+                fontFamily: 'Arial Black, Impact, sans-serif',
+                stroke: '#8b0000', // Black outline
+                strokeThickness: 4,
+                shadow: {
+                    offsetX: 3,
+                    offsetY: 3,
+                    color: '#8b0000', // Dark red shadow
+                    blur: 0,
+                    stroke: true,
+                    fill: true
+                }
             }).setOrigin(0.5);
 
             this.add.image(config.width / 2, config.height * 0.7, 'restartButton')
