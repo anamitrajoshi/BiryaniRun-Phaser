@@ -288,7 +288,7 @@
         function collectCoke(player, coke) {
             coke.destroy();
             player.immune = true;
-            player.setTint(0xff0000);
+            player.setTint(0x0000ff);
             this.time.delayedCall(5000, () => { player.immune = false; player.clearTint(); });
         }
 
