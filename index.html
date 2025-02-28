@@ -37,6 +37,7 @@
         let baseVelocity = -200;
         let velocityMultiplier = 1;
         let gameOver = false;
+        let bgMusic, biryaniSound, gameOverSound, bayleafSound;
 
         const config = {
             type: Phaser.AUTO,
@@ -52,7 +53,6 @@
         const game = new Phaser.Game(config);
 
         function preload() {
-            
             this.load.image('start_bg', 'assets/start_bg.jpg');
             this.load.image('road', 'assets/road.png');
             this.load.image('player', 'assets/character.png');
@@ -64,6 +64,11 @@
             this.load.image('kebab', 'assets/kebab.png');
             this.load.image('Instructions', 'assets/instructions.jpg');
             this.load.image('raita', 'assets/raita.png');
+
+            this.load.audio('bg_music', 'assets/bg_music.mp3');
+            this.load.audio('biryani_hit', 'assets/biryani_hit.mp3');
+            this.load.audio('bayleaf_hit', 'assets/bayleaf_hit.mp3');
+            this.load.audio('game_over', 'assets/game_over.mp3');
         }
 
         function create() {
@@ -71,11 +76,9 @@
         }
 
         function createStartScreen() {
-            
             this.add.image(config.width / 2, config.height / 2, 'start_bg')
                 .setDisplaySize(config.width, config.height); 
 
-            
             const title = this.add.text(config.width / 2, config.height / 3, 'Biryani Run', {
                 fontSize: '80px', fontFamily: 'niagara engraved', color: '#bfa100', stroke: '#000', strokeThickness: 6
             }).setOrigin(0.5);
@@ -105,9 +108,7 @@
             });
 
             instructionsButton.on('pointerover', () => instructionsButton.setScale(0.15));
-            instructionsButton.on('pointerout', () => instructionsButton.setScale(0.1));
-
-            
+            instructionsButton.on('pointerout', () => instructionsButton.setScale(0.1));  
         }
 
         function showInstructions() {
@@ -121,20 +122,17 @@
             - Survive as long as you can!
             `;
 
-           
             const boxWidth = 700;
             const boxHeight = 300;
             const boxX = config.width / 2 - boxWidth / 2;
             const boxY = config.height / 2 - boxHeight / 2;
             const cornerRadius = 20; 
 
-            
             const bgBox = this.add.graphics();
             bgBox.fillStyle(0x333333, 0.8); 
             bgBox.fillRoundedRect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
             bgBox.lineStyle(4, 0xbfa100); 
             bgBox.strokeRoundedRect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
-
 
             const instructionsDisplay = this.add.text(config.width / 2, config.height / 2, instructionText, {
                 fontSize: '24px',
@@ -143,7 +141,6 @@
                 align: 'centre',
                 wordWrap: { width: 650 },
                 lineSpacing: 10,
-                
             }).setOrigin(0.5);
 
             const closeButton = this.add.text(boxX + boxWidth - 45, boxY + 10, '✖', {
@@ -191,6 +188,12 @@
             this.physics.add.overlap(player, cokeGroup, collectCoke, null, this);
             this.physics.add.overlap(player, kebabGroup, collectKebab, null, this);
             this.physics.add.overlap(player, raitaGroup, collectRaita, null, this);
+
+             bgMusic = this.sound.add('bg_music', { loop: true, volume: 0.5 });
+             bgMusic.play();
+             biryaniSound = this.sound.add('biryani_hit');
+             gameOverSound = this.sound.add('game_over');
+             bayleafSound = this.sound.add('bayleaf_hit');
         }
 
         function update() {
@@ -267,6 +270,7 @@
             if (Phaser.Math.Distance.Between(player.x, player.y, biryani.x, biryani.y) < 100) {
                 biryani.destroy();
                 updateScore(10);
+                biryaniSound.play();
             }
         }
 
@@ -275,7 +279,7 @@
 
             // Calculate the distance between the player and the bay leaf
             const distance = Phaser.Math.Distance.Between(player.x, player.y, bay_leaf.x, bay_leaf.y);
-
+            bayleafSound.play();
             // Only deduct a life if the player is close enough to the bay leaf
             if (distance < 50) { 
                 bay_leaf.destroy();
@@ -315,6 +319,8 @@
             gameOver = true;
             this.physics.pause();
             this.time.removeAllEvents();
+            bgMusic.stop();
+            gameOverSound.play();
 
             this.add.text(config.width / 2, config.height / 2 - 50, 'Game Over!', {
                 fontSize: '64px',
@@ -337,7 +343,7 @@
                 .setInteractive()
                 .setScale(0.25)
                 .on('pointerdown', () => location.reload());
-        }
+        }   
     </script>
 </body>
 </html>
