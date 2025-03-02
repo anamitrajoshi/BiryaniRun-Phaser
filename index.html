@@ -38,6 +38,7 @@
         let velocityMultiplier = 1;
         let gameOver = false;
         let bgMusic, biryaniSound, gameOverSound, bayleafSound;
+        let selectedCharacter = 'player'; // Default character
 
         const config = {
             type: Phaser.AUTO,
@@ -56,6 +57,7 @@
             this.load.image('start_bg', 'assets/start_bg.jpg');
             this.load.image('road', 'assets/road.png');
             this.load.image('player', 'assets/character.png');
+            this.load.image('player2', 'assets/char1.png');
             this.load.image('biryani', 'assets/biryani.png');
             this.load.image('bay_leaf', 'assets/bay_leaf.png');
             this.load.image('restartButton', 'assets/restartButton.jpg');
@@ -64,11 +66,19 @@
             this.load.image('kebab', 'assets/kebab.png');
             this.load.image('Instructions', 'assets/instructions.jpg');
             this.load.image('raita', 'assets/raita.png');
+            this.load.image('selectCharacterButton', 'assets/characterSelection.jpg'); 
+            this.load.image('background', 'assets/background2.jpg');
+    
+            this.load.image('arrowLeft', 'assets/leftarrowb.png');
+            this.load.image('arrowRight', 'assets/rightarrowb.png');
+            this.load.image('selectButton', 'assets/selectButtonn.png');
 
             this.load.audio('bg_music', 'assets/bg_music.mp3');
             this.load.audio('biryani_hit', 'assets/biryani_hit.mp3');
             this.load.audio('bayleaf_hit', 'assets/bayleaf_hit.mp3');
             this.load.audio('game_over', 'assets/game_over.mp3');
+
+
         }
 
         function create() {
@@ -85,30 +95,48 @@
 
             const startButton = this.add.image(config.width / 2, config.height * 0.5, 'startButton')
                 .setOrigin(0.5)
-                .setScale(0.1)
+                .setScale(0.2)
                 .setInteractive()
                 .on('pointerdown', () => {
                     title.destroy();
                     startButton.destroy();
+                    selectCharacterButton.destroy();
+                    instructionsButton.destroy();
                     createGameElements.call(this);
                 });
 
-            startButton.on('pointerover', () => startButton.setScale(0.15));
-            startButton.on('pointerout', () => startButton.setScale(0.1));
+            startButton.on('pointerover', () => startButton.setScale(0.3));
+            startButton.on('pointerout', () => startButton.setScale(0.2));
 
-            const instructionsButton = this.add.image(config.width / 2, config.height * 0.6, 'Instructions')
-            .setOrigin(0.5)
-            .setScale(0.1)
-            .setInteractive()
-            .on('pointerdown', () => {
-                title.destroy();
-                startButton.destroy();
-                instructionsButton.destroy();
-                showInstructions.call(this);
-            });
+            const selectCharacterButton = this.add.image(config.width / 2, config.height * 0.6, 'selectCharacterButton')
+                .setOrigin(0.5)
+                .setScale(0.2)
+                .setInteractive()
+                .on('pointerdown', () => {
+                    title.destroy();
+                    startButton.destroy();
+                    selectCharacterButton.destroy();
+                    instructionsButton.destroy();
+                    selectCharacters.call(this);
+                });
 
-            instructionsButton.on('pointerover', () => instructionsButton.setScale(0.15));
-            instructionsButton.on('pointerout', () => instructionsButton.setScale(0.1));  
+            selectCharacterButton.on('pointerover', () => selectCharacterButton.setScale(0.3));
+            selectCharacterButton.on('pointerout', () => selectCharacterButton.setScale(0.2));
+
+            const instructionsButton = this.add.image(config.width / 2, config.height * 0.7, 'Instructions')
+                .setOrigin(0.5)
+                .setScale(0.2)
+                .setInteractive()
+                .on('pointerdown', () => {
+                    title.destroy();
+                    startButton.destroy();
+                    selectCharacterButton.destroy();
+                    instructionsButton.destroy();
+                    showInstructions.call(this);
+                });
+
+            instructionsButton.on('pointerover', () => instructionsButton.setScale(0.3));
+            instructionsButton.on('pointerout', () => instructionsButton.setScale(0.2));  
         }
 
         function showInstructions() {
@@ -163,9 +191,68 @@
             closeButton.on('pointerout', () => closeButton.setStyle({ backgroundColor: '#900' }));
         }
 
+        function selectCharacters() {
+            this.add.image(0, 0, 'background').setOrigin(0, 0).setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
+            
+            const centerX = this.cameras.main.width / 2;
+            const centerY = this.cameras.main.height / 2;
+        
+            let characterScaleX = 0.25; 
+            let characterScaleY = 0.2; 
+
+            
+    
+            let characters = [
+                this.add.image(centerX , centerY, 'player').setScale(characterScaleX, characterScaleY),
+                this.add.image(centerX , centerY, 'player2').setScale(characterScaleX, characterScaleY)
+            ];
+    
+            let arrowLeft = this.add.image(centerX - 300, centerY, 'arrowLeft').setScale(0.5);
+            let arrowRight = this.add.image(centerX + 300, centerY, 'arrowRight').setScale(0.5);
+            let selectButton = this.add.image(centerX, centerY + 150, 'selectButton').setScale(0.7);
+
+
+            arrowLeft.setInteractive();
+            arrowRight.setInteractive();
+            selectButton.setInteractive();
+        
+            let currentIndex = 0;
+        
+            arrowLeft.on('pointerdown', () => {
+                characters[currentIndex].setVisible(false);
+                currentIndex = (currentIndex - 1 + characters.length) % characters.length;
+                characters[currentIndex].setVisible(true);
+            });
+        
+            arrowRight.on('pointerdown', () => {
+                characters[currentIndex].setVisible(false);
+                currentIndex = (currentIndex + 1) % characters.length;
+                characters[currentIndex].setVisible(true);
+            });
+        
+            selectButton.on('pointerdown', () => {
+                selectedCharacter = currentIndex === 0 ? 'player' : 'player2';
+                characters.forEach(char => char.destroy());
+                arrowLeft.destroy();
+                arrowRight.destroy();
+                selectButton.destroy();
+                createStartScreen.call(this);
+            });
+        
+            characters.forEach((char, index) => {
+                if (index !== 0) char.setVisible(false);
+            });
+        }
+
         function createGameElements() {
             this.road = this.add.tileSprite(config.width / 2, config.height / 2, config.width, config.height * 1.5, 'road');
-            player = this.physics.add.sprite(100, config.height / 2, 'player').setCollideWorldBounds(true).setScale(0.3);
+
+            if (selectedCharacter === 'player') {
+                player = this.physics.add.sprite(100, config.height / 2, selectedCharacter).setCollideWorldBounds(true).setScale(0.3);
+            } else if (selectedCharacter === 'player2') {
+                player = this.physics.add.sprite(100, config.height / 2, selectedCharacter).setCollideWorldBounds(true).setScale(0.2); // Reduced scale for player2
+            }
+          
             cursors = this.input.keyboard.createCursorKeys();
 
             biryanis = this.physics.add.group();
@@ -189,11 +276,11 @@
             this.physics.add.overlap(player, kebabGroup, collectKebab, null, this);
             this.physics.add.overlap(player, raitaGroup, collectRaita, null, this);
 
-             bgMusic = this.sound.add('bg_music', { loop: true, volume: 0.5 });
-             bgMusic.play();
-             biryaniSound = this.sound.add('biryani_hit');
-             gameOverSound = this.sound.add('game_over');
-             bayleafSound = this.sound.add('bayleaf_hit');
+            bgMusic = this.sound.add('bg_music', { loop: true, volume: 0.5 });
+            bgMusic.play();
+            biryaniSound = this.sound.add('biryani_hit');
+            gameOverSound = this.sound.add('game_over');
+            bayleafSound = this.sound.add('bayleaf_hit');
         }
 
         function update() {
@@ -226,43 +313,37 @@
         }
 
         function spawnCoke() {
-            // Randomize spawn delay between 5 and 15 seconds
             const spawnDelay = Phaser.Math.Between(5000, 15000);
             this.time.delayedCall(spawnDelay, spawnCoke, [], this);
 
-            // Limit the number of active Coke objects
             if (cokeGroup.getLength() >= 3) return;
 
-            // Spawn Coke at a random position across the top of the screen
             const xPos = Phaser.Math.Between(100, config.width - 100);
-            const yPos = -50; // Spawn above the screen
-            const speed = Phaser.Math.Between(100, 200); // Randomize speed
+            const yPos = -50;
+            const speed = Phaser.Math.Between(100, 200);
 
             let coke = cokeGroup.create(xPos, yPos, 'coke')
                 .setScale(0.5)
-                .setVelocityY(speed); // Move downward at a random speed
+                .setVelocityY(speed);
         }
 
         function spawnKebab() {
-            // Randomize spawn delay between 10 and 20 seconds
             const spawnDelay = Phaser.Math.Between(10000, 20000);
             this.time.delayedCall(spawnDelay, spawnKebab, [], this);
 
-            // Limit the number of active Kebab objects
             if (kebabGroup.getLength() >= 2) return;
 
-            // Spawn Kebab at a random position across the top of the screen
             const xPos = Phaser.Math.Between(100, config.width - 100);
-            const yPos = -50; // Spawn above the screen
-            const speed = Phaser.Math.Between(100, 200); // Randomize speed
+            const yPos = -50;
+            const speed = Phaser.Math.Between(100, 200);
 
             let kebab = kebabGroup.create(xPos, yPos, 'kebab')
                 .setScale(0.5)
-                .setVelocityY(speed); // Move downward at a random speed
+                .setVelocityY(speed);
         }
 
         function spawnRaita() {
-            let raita = raitaGroup.create(Phaser.Math.Between(50, config.width - 50), 0, 'raita').setScale(0.5);
+            let raita = raitaGroup.create(Phaser.Math.Between(50, config.width - 50), 0, 'raita').setScale(0.3);
             raita.setVelocityY(50);
         }
 
@@ -277,11 +358,10 @@
         function hitBayLeaf(player, bay_leaf) {
             if (player.immune) return;
 
-            // Calculate the distance between the player and the bay leaf
             const distance = Phaser.Math.Distance.Between(player.x, player.y, bay_leaf.x, bay_leaf.y);
-            bayleafSound.play();
-            // Only deduct a life if the player is close enough to the bay leaf
+
             if (distance < 50) { 
+                bayleafSound.play(); // ✅ Sound only plays when the player is close enough
                 bay_leaf.destroy();
                 lives--;
                 livesText.setText('Lives: ' + lives);
@@ -304,9 +384,9 @@
 
         function collectRaita(player, raita) {
             raita.destroy();
-            playerSpeed = 400;  // ✅ Increase Speed
+            playerSpeed = 400;
             player.setTint(0x00ff00);
-            this.time.delayedCall(5000, () => { playerSpeed = 200; player.clearTint(); });  // ✅ Restore Speed
+            this.time.delayedCall(5000, () => { playerSpeed = 200; player.clearTint(); });
         }
 
         function updateScore(points) {
